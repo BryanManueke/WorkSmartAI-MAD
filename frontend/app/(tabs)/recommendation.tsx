@@ -1,55 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   SafeAreaView, 
-  ScrollView,
-  FlatList, 
   TextInput, 
-  TouchableOpacity,
+  TouchableOpacity, 
+  FlatList,
   Platform,
   Dimensions
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { ALL_JOBS } from '../../constants/jobs';
 
-const { width } = Dimensions.get('window');
-
-const FILTERS = ['Semua', 'Remote', 'Full-time', 'Part-time', 'Magang'];
-
-const RECOMMENDATIONS = [
-  { id: '1', title: 'Senior Product UI/UX Designer', company: 'Google Indonesia', match: '98%', salary: 'Rp 25-35 Jt', location: 'Jakarta (Hybrid)', logo: 'logo-google' },
-  { id: '2', title: 'Lead Frontend Engineer', company: 'Tokopedia', match: '95%', salary: 'Rp 20-30 Jt', location: 'Remote', logo: 'logo-android' },
-  { id: '3', title: 'Creative Art Director', company: 'Shopee', match: '92%', salary: 'Rp 18-28 Jt', location: 'Singapore', logo: 'logo-apple' },
-  { id: '4', title: 'Mobile Developer (React)', company: 'Gojek', match: '90%', salary: 'Rp 15-25 Jt', location: 'Jakarta', logo: 'bicycle' },
-  { id: '5', title: 'Data Scientist Junior', company: 'Traveloka', match: '88%', salary: 'Rp 12-20 Jt', location: 'Bangkok', logo: 'airplane' },
-];
+const FILTERS = ['Semua', 'Terbaru', 'Gaji Tinggi', 'Full-time', 'Magang'];
 
 export default function Recommendation() {
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Semua');
+  const [showFilters, setShowFilters] = useState(false);
 
-  const renderJobItem = ({ item }: { item: typeof RECOMMENDATIONS[0] }) => (
+  const filteredJobs = useMemo(() => {
+    let results = ALL_JOBS.filter(job => {
+      const matchesSearch = 
+        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.category.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesSearch;
+    });
+
+    // Apply Filter logic
+    if (activeFilter === 'Gaji Tinggi') {
+      results = results.filter(j => {
+        const salaryNum = parseInt(j.salary.replace(/[^0-9]/g, ''));
+        return salaryNum >= 6;
+      });
+    } else if (activeFilter === 'Full-time' || activeFilter === 'Magang') {
+      results = results.filter(j => j.type === activeFilter);
+    } else if (activeFilter === 'Terbaru') {
+      results = results.slice().reverse(); 
+    }
+
+    return results;
+  }, [searchQuery, activeFilter]);
+
+  const renderJobItem = ({ item }: { item: typeof ALL_JOBS[0] }) => (
     <TouchableOpacity 
       style={styles.jobItem} 
       activeOpacity={0.8}
       onPress={() => router.push({
         pathname: '/job-detail',
-        params: { 
-          title: item.title, 
-          company: item.company, 
-          location: item.location, 
-          salary: item.salary 
-        }
+        params: { id: item.id }
       })}
     >
       <View style={styles.jobItemHeader}>
         <View style={styles.logoBox}>
-          <Ionicons name={item.logo as any} size={28} color="#5F6368" />
+          <Ionicons name={item.logo as any} size={28} color="#1A73E8" />
         </View>
-        <TouchableOpacity><Ionicons name="bookmark-outline" size={24} color="#9AA0A6" /></TouchableOpacity>
+        <TouchableOpacity><Ionicons name="bookmark-outline" size={22} color="#9AA0A6" /></TouchableOpacity>
       </View>
       
       <View style={styles.jobMainInfo}>
@@ -60,20 +71,15 @@ export default function Recommendation() {
       <View style={styles.jobMeta}>
         <View style={styles.metaRow}>
           <View style={styles.badge}>
-            <Ionicons name="location-outline" size={14} color="#5F6368" />
+            <Ionicons name="location-outline" size={12} color="#5F6368" />
             <Text style={styles.badgeText}>{item.location}</Text>
           </View>
           <View style={styles.badge}>
-            <Ionicons name="cash-outline" size={14} color="#5F6368" />
-            <Text style={styles.badgeText}>{item.salary}</Text>
+            <Ionicons name="briefcase-outline" size={12} color="#5F6368" />
+            <Text style={styles.badgeText}>{item.type}</Text>
           </View>
         </View>
-        <View style={styles.matchBadge}>
-          <View style={styles.aiSpark}>
-            <Ionicons name="sparkles" size={10} color="#00C896" />
-          </View>
-          <Text style={styles.matchPercent}>{item.match} Cocok</Text>
-        </View>
+        <Text style={styles.salaryText}>{item.salary}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -81,59 +87,66 @@ export default function Recommendation() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topContainer}>
-        {/* Search Bar */}
+        {/* Search Bar Row */}
         <View style={styles.header}>
           <View style={styles.searchBar}>
             <Ionicons name="search-outline" size={20} color="#9AA0A6" style={styles.searchIcon} />
             <TextInput 
-              placeholder="Cari kerja impianmu..." 
+              placeholder="Posisi atau perusahaan..." 
               style={styles.searchInput}
               placeholderTextColor="#9AA0A6"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
           </View>
-          <TouchableOpacity style={styles.filterBtn}>
-            <Ionicons name="options-outline" size={24} color="#FFFFFF" />
+          <TouchableOpacity 
+            style={[styles.filterBtn, showFilters && styles.filterBtnActive]} 
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons name="options-outline" size={22} color={showFilters ? "#FFFFFF" : "#1A73E8"} />
           </TouchableOpacity>
         </View>
 
-        {/* Filter Chips */}
-        <View style={styles.filterSection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterList}>
-            {FILTERS.map(filter => (
-              <TouchableOpacity 
-                key={filter} 
-                onPress={() => setActiveFilter(filter)}
-                style={[styles.chip, activeFilter === filter && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, activeFilter === filter && styles.chipTextActive]}>{filter}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        {/* Toggleable Filter Chips */}
+        {showFilters && (
+          <View style={styles.filterSection}>
+            <View style={styles.filterChipContainer}>
+              {FILTERS.map(filter => (
+                <TouchableOpacity 
+                  key={filter} 
+                  onPress={() => setActiveFilter(filter)}
+                  style={[styles.chip, activeFilter === filter && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, activeFilter === filter && styles.chipTextActive]}>{filter}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
       </View>
 
-      {/* Main List */}
       <FlatList 
-        data={RECOMMENDATIONS}
+        data={filteredJobs}
         renderItem={renderJobItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listPadding}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <Text style={styles.resultsCount}>
+            Menampilkan {filteredJobs.length} lowongan di Manado
+          </Text>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="search-outline" size={80} color="#F1F3F4" />
+            <Text style={styles.emptyTitle}>Tidak ditemukan</Text>
+            <Text style={styles.emptySubtitle}>Pencarian "{searchQuery}" tidak ada.</Text>
+            <TouchableOpacity style={styles.resetBtn} onPress={() => { setSearchQuery(''); setActiveFilter('Semua'); setShowFilters(false); }}>
+              <Text style={styles.resetBtnText}>Reset Pencarian</Text>
+            </TouchableOpacity>
+          </View>
+        }
       />
-
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fabWrapper} activeOpacity={0.9}>
-        <LinearGradient
-          colors={['#1A73E8', '#00C896']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.fab}
-        >
-          <Ionicons name="sparkles" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-          <Text style={styles.fabText}>Biarkan AI Menyempurnakan Pencarianku</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-
     </SafeAreaView>
   );
 }
@@ -163,7 +176,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     height: 52,
     paddingHorizontal: 16,
-    marginRight: 12,
   },
   searchIcon: {
     marginRight: 12,
@@ -176,23 +188,31 @@ const styles = StyleSheet.create({
   filterBtn: {
     width: 52,
     height: 52,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#E8F1FF',
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 12,
+  },
+  filterBtnActive: {
+    backgroundColor: '#1A73E8',
   },
   filterSection: {
-    paddingBottom: 16,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+    paddingTop: 4,
   },
-  filterList: {
-    paddingHorizontal: 20,
+  filterChipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   chip: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
     backgroundColor: '#F1F3F4',
-    marginHorizontal: 4,
+    marginRight: 8,
+    marginBottom: 8,
   },
   chipActive: {
     backgroundColor: '#1A73E8',
@@ -207,11 +227,17 @@ const styles = StyleSheet.create({
   },
   listPadding: {
     padding: 24,
-    paddingBottom: 120,
+    paddingBottom: 100,
+  },
+  resultsCount: {
+    fontSize: 14,
+    color: '#9AA0A6',
+    fontWeight: '600',
+    marginBottom: 20,
   },
   jobItem: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 20,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
@@ -231,7 +257,7 @@ const styles = StyleSheet.create({
   logoBox: {
     width: 52,
     height: 52,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#E8F1FF',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
@@ -257,7 +283,6 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row',
-    flex: 1,
   },
   badge: {
     flexDirection: 'row',
@@ -274,47 +299,38 @@ const styles = StyleSheet.create({
     color: '#5F6368',
     marginLeft: 4,
   },
-  matchBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E6FFF5',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#00C89630',
-  },
-  aiSpark: {
-    marginRight: 4,
-  },
-  matchPercent: {
-    fontSize: 12,
+  salaryText: {
+    fontSize: 14,
     fontWeight: '800',
     color: '#00C896',
   },
-  fabWrapper: {
-    position: 'absolute',
-    bottom: 24,
-    left: 24,
-    right: 24,
-  },
-  fab: {
-    height: 56,
-    borderRadius: 28,
-    flexDirection: 'row',
+  emptyContainer: {
+    marginTop: 60,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    shadowColor: '#1A73E8',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    paddingHorizontal: 40,
   },
-  fabText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+  emptyTitle: {
+    fontSize: 18,
     fontWeight: '800',
+    color: '#202124',
+    marginTop: 20,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#5F6368',
     textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  resetBtn: {
+    marginTop: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#1A73E8',
+    borderRadius: 12,
+  },
+  resetBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   }
 });

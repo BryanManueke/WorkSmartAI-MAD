@@ -9,31 +9,21 @@ import {
   Image,
   Dimensions,
   FlatList,
-  Platform
+  Platform,
+  TextInput
 } from 'react-native';
+import { ALL_JOBS, CATEGORIES } from '../../constants/jobs';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
-const CATEGORIES = [
-  { id: '1', name: 'Teknologi', icon: 'code-slash', color: '#1A73E8' },
-  { id: '2', name: 'Bisnis', icon: 'stats-chart', color: '#00C896' },
-  { id: '3', name: 'Desain', icon: 'color-palette', color: '#F4B400' },
-  { id: '4', name: 'Pemasaran', icon: 'megaphone', color: '#EA4335' },
-  { id: '5', name: 'Kesehatan', icon: 'fitness', color: '#4285F4' },
-  { id: '6', name: 'Pendidikan', icon: 'school', color: '#0F9D58' },
-];
-
-const RECOMMENDED_JOBS = [
-  { id: '1', title: 'Product UI Designer', company: 'Google', location: 'Jakarta', salary: 'Rp 15-25 Jt', logo: 'logo-google' },
-  { id: '2', title: 'Senior Developer', company: 'Tokopedia', location: 'Remote', salary: 'Rp 20-35 Jt', logo: 'logo-android' },
-  { id: '3', title: 'Business Analyst', company: 'Shopee', location: 'Singapore', salary: 'Rp 18-30 Jt', logo: 'logo-apple' },
-];
-
 export default function Dashboard() {
   const router = useRouter();
+  
+  // Get top 3 jobs for recommendation
+  const recommendedJobs = ALL_JOBS.slice(0, 3);
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -51,6 +41,19 @@ export default function Dashboard() {
             />
           </View>
         </View>
+
+        {/* Search Bar */}
+        <TouchableOpacity 
+          style={styles.searchBar} 
+          activeOpacity={0.9}
+          onPress={() => router.push('/recommendation')}
+        >
+          <Ionicons name="search-outline" size={20} color="#9AA0A6" />
+          <Text style={styles.searchPlaceholder}>Cari pekerjaan di Manado...</Text>
+          <View style={styles.filterIcon}>
+            <Ionicons name="options-outline" size={20} color="#1A73E8" />
+          </View>
+        </TouchableOpacity>
 
         {/* AI Card */}
         <TouchableOpacity activeOpacity={0.95}>
@@ -75,11 +78,11 @@ export default function Dashboard() {
         {/* Recommended Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Direkomendasikan Untukmu</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>Lihat Semua</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/recommendation')}><Text style={styles.seeAll}>Lihat Semua</Text></TouchableOpacity>
         </View>
         
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-          {RECOMMENDED_JOBS.map(job => (
+          {recommendedJobs.map(job => (
             <TouchableOpacity 
               key={job.id} 
               style={styles.jobCard} 
@@ -87,6 +90,7 @@ export default function Dashboard() {
               onPress={() => router.push({
                 pathname: '/job-detail',
                 params: { 
+                  id: job.id,
                   title: job.title, 
                   company: job.company, 
                   location: job.location, 
@@ -96,10 +100,10 @@ export default function Dashboard() {
             >
               <View style={styles.jobCardHeader}>
                 <View style={styles.companyLogo}>
-                  <Ionicons name={job.logo as any} size={28} color="#5F6368" />
+                  <Ionicons name={job.logo as any} size={28} color="#1A73E8" />
                 </View>
                 <View style={styles.fullTimeBadge}>
-                  <Text style={styles.fullTimeText}>Full-time</Text>
+                  <Text style={styles.fullTimeText}>{job.type}</Text>
                 </View>
               </View>
               <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
@@ -122,7 +126,15 @@ export default function Dashboard() {
         
         <View style={styles.categoryGrid}>
           {CATEGORIES.map(category => (
-            <TouchableOpacity key={category.id} style={styles.categoryItem} activeOpacity={0.7}>
+            <TouchableOpacity 
+              key={category.id} 
+              style={styles.categoryItem} 
+              activeOpacity={0.7}
+              onPress={() => router.push({
+                pathname: '/category-jobs',
+                params: { title: category.name }
+              })}
+            >
               <View style={[styles.categoryIconBox, { backgroundColor: category.color + '15' }]}>
                 <Ionicons name={category.icon as any} size={24} color={category.color} />
               </View>
@@ -151,7 +163,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    marginHorizontal: 24,
+    paddingHorizontal: 16,
+    height: 52,
+    borderRadius: 16,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#F1F3F4',
+  },
+  searchPlaceholder: {
+    flex: 1,
+    marginLeft: 12,
+    color: '#9AA0A6',
+    fontSize: 15,
+  },
+  filterIcon: {
+    width: 36,
+    height: 36,
+    backgroundColor: '#E8F1FF',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   greeting: {
     fontSize: 22,

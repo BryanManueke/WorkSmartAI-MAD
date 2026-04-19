@@ -31,7 +31,7 @@ export default function SetupProfileScreen() {
 
   const nextStep = () => {
     if (step < totalSteps) setStep(step + 1);
-    else router.replace('/dashboard');
+    else router.replace('/(tabs)/dashboard');
   };
 
   const prevStep = () => {

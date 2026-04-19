@@ -14,12 +14,39 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import WorkButton from '../components/WorkButton';
+import { useSavedJobsStore } from '../hooks/useSavedJobsStore';
+
+
+import { ALL_JOBS, JOB_ASSETS } from '../constants/jobs';
 
 const { width } = Dimensions.get('window');
 
 export default function JobDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { toggleSaveJob, savedJobIds } = useSavedJobsStore();
+  
+  // Find the job from local data (Convex will be enabled after npx convex dev)
+  const job = ALL_JOBS.find(j => j.id === params.id) || ALL_JOBS.find(j => j.title === params.title);
+
+  const isSaved = job ? savedJobIds.includes(job.id) : false;
+
+
+  if (!job) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Pekerjaan tidak ditemukan.</Text>
+          <WorkButton title="Kembali" onPress={() => router.back()} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Resolve banner source (local asset mapping or remote URI)
+  const bannerSource = JOB_ASSETS[job.banner as keyof typeof JOB_ASSETS] 
+    ? JOB_ASSETS[job.banner as keyof typeof JOB_ASSETS] 
+    : { uri: job.banner };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -29,42 +56,53 @@ export default function JobDetail() {
         {/* Banner Section */}
         <View style={styles.bannerContainer}>
           <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80' }} 
+            source={bannerSource} 
             style={styles.bannerImg} 
           />
           <View style={styles.bannerOverlay} />
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => job && toggleSaveJob(job.id)} 
+            style={styles.saveBtn}
+          >
+            <Ionicons 
+              name={isSaved ? "bookmark" : "bookmark-outline"} 
+              size={24} 
+              color="#FFFFFF" 
+            />
+          </TouchableOpacity>
         </View>
+
 
         {/* Floating Logo */}
         <View style={styles.logoWrapper}>
           <View style={styles.logoBox}>
-            <Ionicons name="logo-google" size={40} color="#5F6368" />
+            <Ionicons name={job.logo as any} size={40} color="#1A73E8" />
           </View>
         </View>
 
         {/* Content */}
         <View style={styles.content}>
-          <Text style={styles.jobTitle}>{params.title || 'Senior UI/UX Designer'}</Text>
-          <Text style={styles.companyName}>{params.company || 'Google Indonesia'}</Text>
+          <Text style={styles.jobTitle}>{job.title}</Text>
+          <Text style={styles.companyName}>{job.company}</Text>
           
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Ionicons name="location-outline" size={16} color="#5F6368" />
-              <Text style={styles.metaText}>{params.location || 'Jakarta'}</Text>
+              <Text style={styles.metaText}>{job.location}</Text>
             </View>
             <View style={styles.metaItem}>
               <Ionicons name="cash-outline" size={16} color="#5F6368" />
-              <Text style={styles.metaText}>{params.salary || 'Rp 15-25 Jt'}</Text>
+              <Text style={styles.metaText}>{job.salary}</Text>
             </View>
           </View>
 
           <View style={styles.chipRow}>
-            <View style={styles.chip}><Text style={styles.chipText}>Remote</Text></View>
-            <View style={styles.chip}><Text style={styles.chipText}>Full-time</Text></View>
-            <View style={styles.chip}><Text style={styles.chipText}>Mid-Level</Text></View>
+            <View style={styles.chip}><Text style={styles.chipText}>{job.type}</Text></View>
+            <View style={styles.chip}><Text style={styles.chipText}>{job.category}</Text></View>
+            <View style={styles.chip}><Text style={styles.chipText}>Manado</Text></View>
           </View>
 
           {/* AI Match Card */}
@@ -78,24 +116,31 @@ export default function JobDetail() {
             <View style={styles.breakdownBar}>
               <View style={[styles.breakdownFill, { width: '92%', backgroundColor: '#00C896' }]} />
             </View>
-            <Text style={styles.aiHint}>AI mereview skill Desain UI dan pengalaman Figma Anda.</Text>
+            <Text style={styles.aiHint}>AI mereview skill dan pengalaman relevan Anda.</Text>
           </View>
 
           {/* Details */}
           <View style={styles.detailSection}>
             <Text style={styles.sectionTitle}>Tentang Pekerjaan</Text>
-            <Text style={styles.sectionDesc}>
-              {params.description || "Kami mencari desainer yang berbakat untuk membantu kami membangun masa depan internet yang lebih inklusif dan mudah diakses bagi semua orang di Indonesia."}
-            </Text>
+            <Text style={styles.sectionDesc}>{job.description}</Text>
+          </View>
+
+          <View style={styles.detailSection}>
+            <Text style={styles.sectionTitle}>Tanggung Jawab</Text>
+            <View>
+              {job.responsibilities.map((res, i) => (
+                <Text key={i} style={styles.sectionDesc}>• {res}</Text>
+              ))}
+            </View>
           </View>
 
           <View style={styles.detailSection}>
             <Text style={styles.sectionTitle}>Persyaratan</Text>
-            <Text style={styles.sectionDesc}>
-              • Minimal 3 tahun pengalaman di bidang desain UI/UX.{"\n"}
-              • Menguasai Figma, Adobe XD, dan prototyping tools.{"\n"}
-              • Pernah mengerjakan proyek aplikasi mobile berskala besar.
-            </Text>
+            <View>
+              {job.requirements.map((req, i) => (
+                <Text key={i} style={styles.sectionDesc}>• {req}</Text>
+              ))}
+            </View>
           </View>
 
         </View>
@@ -104,8 +149,15 @@ export default function JobDetail() {
 
       {/* Sticky Bottom Bar */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.saveBtn}>
-          <Ionicons name="bookmark-outline" size={24} color="#1A73E8" />
+        <TouchableOpacity 
+          style={[styles.saveBtnBottom, isSaved && styles.saveBtnActive]} 
+          onPress={() => job && toggleSaveJob(job.id)}
+        >
+          <Ionicons 
+            name={isSaved ? "bookmark" : "bookmark-outline"} 
+            size={24} 
+            color={isSaved ? "#FFFFFF" : "#1A73E8"} 
+          />
         </TouchableOpacity>
         <WorkButton 
           title="Lamar Sekarang" 
@@ -140,12 +192,23 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? 40 : 20,
+    top: Platform.OS === 'ios' ? 60 : 40,
     left: 20,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -294,7 +357,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
   },
-  saveBtn: {
+  saveBtnBottom: {
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -303,5 +366,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+  },
+  saveBtnActive: {
+    backgroundColor: '#1A73E8',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#5F6368',
+    marginBottom: 20,
+    textAlign: 'center',
   }
 });

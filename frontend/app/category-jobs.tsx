@@ -9,17 +9,16 @@ import {
   StatusBar,
   Platform
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { ALL_JOBS } from '../../constants/jobs';
-import { useSavedJobsStore } from '../../hooks/useSavedJobsStore';
+import { ALL_JOBS } from '../constants/jobs';
 
-export default function SavedJobsScreen() {
+export default function CategoryJobsScreen() {
   const router = useRouter();
-  const { savedJobIds } = useSavedJobsStore();
+  const { title } = useLocalSearchParams();
   
-  // Filter saved jobs from local data
-  const savedJobs = ALL_JOBS.filter(job => savedJobIds.includes(job.id));
+  // Filter jobs by category from local data
+  const jobs = ALL_JOBS.filter(job => job.category === title);
 
   const renderJobItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
@@ -27,7 +26,13 @@ export default function SavedJobsScreen() {
       activeOpacity={0.8}
       onPress={() => router.push({
         pathname: '/job-detail',
-        params: { id: item.id }
+        params: { 
+          id: item.id,
+          title: item.title, 
+          company: item.company, 
+          location: item.location, 
+          salary: item.salary 
+        }
       })}
     >
       <View style={styles.cardRow}>
@@ -52,27 +57,22 @@ export default function SavedJobsScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Pekerjaan Tersimpan</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color="#202124" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{title}</Text>
+        <View style={{ width: 44 }} />
       </View>
 
       <FlatList
-        data={savedJobs}
+        data={jobs}
         renderItem={renderJobItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listPadding}
         ListEmptyComponent={
           <View style={styles.emptyBox}>
-            <View style={styles.emptyIconBox}>
-                <Ionicons name="bookmark-outline" size={60} color="#E8F1FF" />
-            </View>
-            <Text style={styles.emptyTitle}>Belum ada simpanan</Text>
-            <Text style={styles.emptyDesc}>Pekerjaan yang kamu simpan akan muncul di sini untuk dilihat nanti.</Text>
-            <TouchableOpacity 
-                style={styles.exploreBtn}
-                onPress={() => router.push('/(tabs)/recommendation')}
-            >
-                <Text style={styles.exploreBtnText}>Cari Pekerjaan</Text>
-            </TouchableOpacity>
+            <Ionicons name="search-outline" size={60} color="#F1F3F4" />
+            <Text style={styles.emptyText}>Belum ada lowongan di kategori ini</Text>
           </View>
         }
       />
@@ -86,20 +86,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F3F4',
-    paddingTop: Platform.OS === 'android' ? 50 : 20,
+    paddingTop: Platform.OS === 'android' ? 40 : 12,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '800',
     color: '#202124',
   },
   listPadding: {
     padding: 24,
-    paddingBottom: 100,
   },
   jobCard: {
     backgroundColor: '#FFFFFF',
@@ -159,41 +169,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyBox: {
-    marginTop: 80,
+    marginTop: 100,
     alignItems: 'center',
-    paddingHorizontal: 40,
   },
-  emptyIconBox: {
-    width: 120,
-    height: 120,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#202124',
-    marginBottom: 8,
-  },
-  emptyDesc: {
-    fontSize: 14,
-    color: '#5F6368',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 32,
-  },
-  exploreBtn: {
-    backgroundColor: '#1A73E8',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  exploreBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
+  emptyText: {
+    marginTop: 16,
+    fontSize: 15,
+    color: '#9AA0A6',
+    fontWeight: '500',
   }
 });
