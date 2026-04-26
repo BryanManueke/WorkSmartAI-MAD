@@ -1,50 +1,57 @@
-# Welcome to your Expo app 👋
+# 📁 Struktur Folder Proyek WorkSmartAI
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Struktur Akhir
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+FINAL_PROJECT/
+│
+├── app/                        ← Semua layar aplikasi (Expo Router)
+│   ├── (tabs)/                 ← Tab utama: dashboard, recommendation, saved, profile
+│   ├── _layout.tsx             ← Root layout + ConvexProvider
+│   ├── job-detail.tsx          ← Halaman detail pekerjaan
+│   ├── category-jobs.tsx       ← Halaman list pekerjaan per kategori
+│   ├── login.tsx               ← Halaman login
+│   ├── register.tsx            ← Halaman registrasi
+│   └── setup-profile.tsx       ← Halaman setup profil
+│
+├── convex/                     ← 🗄️ BACKEND (Convex)
+│   ├── schema.ts               ← Definisi tabel database
+│   ├── jobs.ts                 ← API fungsi pekerjaan
+│   └── _generated/             ← AUTO-GENERATED
+│
+├── components/                 ← Komponen UI reusable
+├── constants/                  ← Data statis
+├── hooks/                      ← Custom hooks
+├── assets/                     ← Gambar dan aset
+├── .env.local                  ← URL koneksi Convex
+├── package.json                ← Dependensi Proyek
+└── README.md                   ← Panduan ini
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## ⚠️ Kenapa `convex/` ada di dalam `frontend/`?
 
-To learn more about developing your project with Expo, look at the following resources:
+Ini adalah **cara yang benar secara teknis**. Convex CLI (`npx convex dev`) bekerja dengan membaca folder `convex/` yang sejajar dengan `package.json` proyek yang menggunakannya. Karena frontend-lah yang menggunakan Convex, maka `convex/` **harus** berada di dalam `frontend/`.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+## 🚀 Cara Menjalankan
 
-Join our community of developers creating universal apps.
+### Terminal 1 — Backend (Convex):
+```bash
+npx convex dev
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Terminal 2 — Frontend (Expo):
+```bash
+npm start
+```
+
+---
+
+## 📋 Urutan Setup Pertama Kali
+
+1. `npx convex dev` → login/buat akun Convex, lalu tunggu hingga URL muncul
+2. Buka terminal baru → `npm start`
+3. Scan QR Code dengan Expo Go
