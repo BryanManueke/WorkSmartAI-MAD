@@ -21,8 +21,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import WorkInput from '../components/ui/WorkInput';
 import WorkButton from '../components/ui/WorkButton';
 import { useUserStore } from '../stores';
-import { useGoogleAuth } from '../services/googleAuth';
-import { useEffect } from 'react';
 import { ActivityIndicator } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -36,63 +34,15 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const storeUser = useMutation(api.users.storeUser);
   const registerMutation = useMutation(api.users.create);
-  const { loginWithGoogle, userInfo, loading: googleLoading, error: googleError } = useGoogleAuth();
 
   const handleFocus = () => {
     // Scroll to end when focused on lower fields
     setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
     }, 100);
-  };
-
-  useEffect(() => {
-    if (userInfo) {
-      handleSyncGoogleUser();
-    }
-  }, [userInfo]);
-
-  useEffect(() => {
-    if (googleError) {
-      Alert.alert("Gagal Daftar", googleError);
-    }
-  }, [googleError]);
-
-  const handleSyncGoogleUser = async () => {
-    try {
-      const userDoc = await storeUser({
-        name: userInfo!.name,
-        email: userInfo!.email,
-        avatar: userInfo!.picture
-      });
-      
-      if (userDoc) {
-        setUser({
-          ...userDoc,
-          id: userDoc._id
-        } as any);
-        router.replace('/(tabs)/dashboard');
-      }
-    } catch (e) {
-      Alert.alert("Error", "Gagal menyinkronkan data Google ke server.");
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    // Show system prompt simulation before starting real auth session
-    Alert.alert(
-      "\"WorkSmartAI\" Ingin Menggunakan \"google.com\" untuk Masuk",
-      "Ini memungkinkan aplikasi dan situs web untuk berbagi informasi tentang Anda.",
-      [
-        { text: "Batal", style: "cancel" },
-        { 
-          text: "Lanjutkan", 
-          onPress: () => loginWithGoogle()
-        }
-      ]
-    );
   };
 
   const handleRegister = async () => {
@@ -106,6 +56,7 @@ export default function RegisterScreen() {
     }
 
     try {
+      setIsProcessing(true);
       const userDoc = await registerMutation({ name, email, password });
       
       if (userDoc) {
@@ -124,6 +75,8 @@ export default function RegisterScreen() {
         errMsg = errMsg.split("Uncaught Error: ")[1].split(" at handler")[0].trim();
       }
       Alert.alert("Gagal Mendaftar", errMsg);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -195,33 +148,10 @@ export default function RegisterScreen() {
                 />
                 
                 <WorkButton 
-                  title="Daftar Sekarang" 
+                  title={isProcessing ? "Memproses..." : "Daftar Sekarang"} 
                   onPress={handleRegister} 
-                  style={styles.registerBtn} 
+                  loading={isProcessing}
                 />
-
-                <View style={styles.dividerRow}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>Atau daftar dengan</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                <View style={styles.socialRow}>
-                  <TouchableOpacity 
-                    style={styles.googleBtn} 
-                    onPress={handleGoogleLogin}
-                    disabled={googleLoading}
-                  >
-                    {googleLoading ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons name="logo-google" size={20} color="#DB4437" />
-                        <Text style={styles.googleBtnText}>Daftar dengan Google</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
               </View>
 
               <View style={styles.footer}>

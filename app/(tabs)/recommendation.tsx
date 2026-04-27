@@ -25,32 +25,11 @@ export default function Recommendation() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Semua');
   const [showFilters, setShowFilters] = useState(false);
-  const [rankedJobs, setRankedJobs] = useState<any[]>([]);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
   // Ambil semua pekerjaan dari Convex
   const allConvexJobs = useQuery(api.jobs.listAll) || [];
-  const userProfile = useQuery(api.users.getProfile, user?._id ? { userId: user._id as any } : "skip" as any);
-  const rankJobsAction = useAction(api.ai.rankJobs);
-
-  const handleAIAnalysis = async () => {
-    if (!user?._id) return;
-    setIsAnalyzing(true);
-    try {
-      const results = await rankJobsAction({
-        userProfile: userProfile,
-        jobs: allConvexJobs
-      });
-      setRankedJobs(results);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
 
   const displayJobs = useMemo(() => {
-    let results = rankedJobs.length > 0 ? [...rankedJobs] : [...allConvexJobs];
+    let results = [...allConvexJobs];
     
     if (searchQuery) {
       results = results.filter((job: any) => 
@@ -73,7 +52,7 @@ export default function Recommendation() {
     }
 
     return results;
-  }, [allConvexJobs, rankedJobs, searchQuery, activeFilter]);
+  }, [allConvexJobs, searchQuery, activeFilter]);
 
   const renderJobItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
@@ -142,17 +121,6 @@ export default function Recommendation() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={[styles.aiButton, isAnalyzing && { opacity: 0.7 }]} 
-          onPress={handleAIAnalysis}
-          disabled={isAnalyzing}
-        >
-          <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-          <Text style={styles.aiButtonText}>
-            {isAnalyzing ? 'Menganalisis...' : 'Dapatkan Rekomendasi AI Personal'}
-          </Text>
-        </TouchableOpacity>
-
         {/* Toggleable Filter Chips */}
         {showFilters && (
           <View style={styles.filterSection}>
@@ -179,7 +147,7 @@ export default function Recommendation() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <Text style={styles.resultsCount}>
-            {rankedJobs.length > 0 ? 'Urutan berdasarkan kecocokan profil Anda' : `Menampilkan ${displayJobs.length} lowongan di Manado`}
+            Menampilkan {displayJobs.length} lowongan di Manado
           </Text>
         }
         ListEmptyComponent={
@@ -187,7 +155,7 @@ export default function Recommendation() {
             <Ionicons name="search-outline" size={80} color="#F1F3F4" />
             <Text style={styles.emptyTitle}>Tidak ditemukan</Text>
             <Text style={styles.emptySubtitle}>Pencarian "{searchQuery}" tidak ada.</Text>
-            <TouchableOpacity style={styles.resetBtn} onPress={() => { setSearchQuery(''); setActiveFilter('Semua'); setShowFilters(false); setRankedJobs([]); }}>
+            <TouchableOpacity style={styles.resetBtn} onPress={() => { setSearchQuery(''); setActiveFilter('Semua'); setShowFilters(false); }}>
               <Text style={styles.resetBtnText}>Reset Pencarian</Text>
             </TouchableOpacity>
           </View>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface ButtonProps {
@@ -7,9 +7,10 @@ interface ButtonProps {
   onPress: () => void;
   variant?: 'primary' | 'social' | 'link';
   style?: ViewStyle;
+  loading?: boolean;
 }
 
-export default function WorkButton({ title, onPress, variant = 'primary', style }: ButtonProps) {
+export default function WorkButton({ title, onPress, variant = 'primary', style, loading }: ButtonProps) {
   if (variant === 'link') {
     return (
       <TouchableOpacity onPress={onPress} style={[styles.linkBtn, style]}>
@@ -27,12 +28,16 @@ export default function WorkButton({ title, onPress, variant = 'primary', style 
   }
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={[styles.btnShadow, style]}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={[styles.btnShadow, style]} disabled={loading}>
       <LinearGradient
-        colors={['#1A73E8', '#1A73E8']}
+        colors={loading ? ['#A0C3FF', '#A0C3FF'] : ['#1A73E8', '#1A73E8']}
         style={styles.primaryBtn}
       >
-        <Text style={styles.primaryText}>{title}</Text>
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.primaryText}>{title}</Text>
+        )}
       </LinearGradient>
     </TouchableOpacity>
   );

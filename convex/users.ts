@@ -104,6 +104,21 @@ export const updatePassword = mutation({
   },
 });
 
+export const updateAiRecommendations = mutation({
+  args: {
+    userId: v.id("users"),
+    recommendations: v.array(v.object({
+      jobId: v.id("jobs"),
+      score: v.number(),
+      reason: v.string(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, { aiRecommendations: args.recommendations });
+    return "Recommendations updated.";
+  },
+});
+
 // v3 - Renamed to getProfile to force refresh
 export const getProfile = query({
   args: { userId: v.id("users") },

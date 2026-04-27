@@ -24,6 +24,11 @@ export default defineSchema({
     website: v.optional(v.string()),
     education: v.optional(v.string()), // JSON string for complexity
     experience: v.optional(v.string()), // JSON string for complexity
+    aiRecommendations: v.optional(v.array(v.object({
+      jobId: v.id("jobs"),
+      score: v.number(),
+      reason: v.string(),
+    }))),
   }).index("by_email", ["email"]),
   
   jobs: defineTable({
@@ -45,4 +50,10 @@ export default defineSchema({
     jobId: v.id("jobs"),
   }).index("by_user", ["userId"])
     .index("by_user_job", ["userId", "jobId"]),
+
+  chatMessages: defineTable({
+    userId: v.id("users"),
+    text: v.string(),
+    sender: v.string(),
+  }).index("by_user", ["userId"]),
 });

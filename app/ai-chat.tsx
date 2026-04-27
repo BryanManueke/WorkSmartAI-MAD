@@ -15,7 +15,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '../stores';
-import { useAction, useQuery } from 'convex/react';
+import { useAction, useQuery, useMutation } from 'convex/react';
 import { api } from '../convex/_generated/api';
 
 interface Message {
@@ -37,26 +37,49 @@ export default function AiChatScreen() {
   const chatAction = useAction(api.ai.chat);
   const analyzeAction = useAction(api.ai.analyzeResume);
   const userProfile = useQuery(api.users.getProfile, user?._id ? { userId: user._id as any } : "skip" as any);
+  
+  const savedMessages = useQuery(api.ai.getMessages, user?._id ? { userId: user._id as any } : "skip" as any);
+  const saveMessageMutation = useMutation(api.ai.saveMessage);
+  const clearMessagesMutation = useMutation(api.ai.clearMessages);
+  
+  const allJobs = useQuery(api.jobs.listAll);
+  const rankJobsAction = useAction(api.ai.rankJobs);
+  const updateAiRecsMutation = useMutation(api.users.updateAiRecommendations);
+
+  const hasTriggeredAnalysis = useRef(false);
 
   useEffect(() => {
-    if (mode === 'analyze' && data) {
-      const resumeData = JSON.parse(data as string);
-      handleInitialAnalysis(resumeData);
-    } else {
-      setMessages([
-        {
-          id: '1',
-          text: `Halo ${user?.name?.split(' ')[0] || ''}! Saya WorkSmart AI Advisor. Ada yang bisa saya bantu tentang karirmu hari ini?`,
-          sender: 'ai'
-        }
-      ]);
-    }
-  }, [mode, data]);
+    if (savedMessages === undefined) return;
 
-  const handleInitialAnalysis = async (resumeData: any) => {
+    if (!hasTriggeredAnalysis.current) {
+      if (mode === 'analyze' && data) {
+        hasTriggeredAnalysis.current = true;
+        const resumeData = JSON.parse(data as string);
+        handleInitialAnalysis(resumeData, savedMessages);
+      } else {
+        hasTriggeredAnalysis.current = true;
+        if (savedMessages.length > 0) {
+          setMessages(savedMessages.map(m => ({ id: m._id, text: m.text, sender: m.sender as 'ai' | 'user' })));
+        } else {
+          setMessages([
+            {
+              id: '1',
+              text: `Halo ${user?.name?.split(' ')[0] || ''}! Saya WorkSmart AI Advisor. Ada yang bisa saya bantu tentang karirmu hari ini?`,
+              sender: 'ai'
+            }
+          ]);
+        }
+      }
+    }
+  }, [mode, data, savedMessages, user?.name]);
+
+  const handleInitialAnalysis = async (resumeData: any, existingHistory: any[]) => {
+    const historyMsgs = existingHistory.map(m => ({ id: m._id, text: m.text, sender: m.sender as 'ai' | 'user' }));
+    
     setMessages([
+      ...historyMsgs,
       {
-        id: '1',
+        id: Date.now().toString(),
         text: `Halo ${user?.name?.split(' ')[0] || ''}! Saya sedang menganalisis resumemu menggunakan Gemini AI...`,
         sender: 'ai'
       }
@@ -66,18 +89,41 @@ export default function AiChatScreen() {
     try {
       const result = await analyzeAction({ resumeData });
       setMessages(prev => [...prev, {
-        id: Date.now().toString(),
+        id: (Date.now() + 1).toString(),
         text: result,
         sender: 'ai'
       }]);
+      
+      if (user?._id) {
+        saveMessageMutation({ userId: user._id as any, text: result, sender: 'ai' });
+        
+        // Update dashboard recommendations in background
+        if (allJobs && allJobs.length > 0) {
+          rankJobsAction({
+            userProfile: userProfile || { skills: resumeData.skills || [] },
+            jobs: allJobs
+          }).then(ranked => {
+            const top5 = ranked.slice(0, 5).map((r: any) => ({
+              jobId: r._id,
+              score: r.matchScore,
+              reason: r.matchReason
+            }));
+            updateAiRecsMutation({
+              userId: user._id as any,
+              recommendations: top5
+            });
+          }).catch(e => console.error("Ranking error:", e));
+        }
+      }
     } catch (error) {
       setMessages(prev => [...prev, {
-        id: Date.now().toString(),
+        id: (Date.now() + 1).toString(),
         text: "Maaf, saya gagal menganalisis resumemu saat ini. Silakan coba lagi nanti.",
         sender: 'ai'
       }]);
     } finally {
       setIsLoading(false);
+      router.setParams({ mode: '', data: '' });
     }
   };
 
@@ -86,6 +132,9 @@ export default function AiChatScreen() {
 
     const userMsg: Message = { id: Date.now().toString(), text: inputText, sender: 'user' };
     setMessages(prev => [...prev, userMsg]);
+    if (user?._id) {
+      saveMessageMutation({ userId: user._id as any, text: inputText, sender: 'user' });
+    }
     const currentInput = inputText;
     setInputText('');
     Keyboard.dismiss();
@@ -103,6 +152,9 @@ export default function AiChatScreen() {
 
       const aiMsg: Message = { id: (Date.now() + 1).toString(), text: response, sender: 'ai' };
       setMessages(prev => [...prev, aiMsg]);
+      if (user?._id) {
+        saveMessageMutation({ userId: user._id as any, text: response, sender: 'ai' });
+      }
     } catch (error: any) {
       const errorMsg: Message = { 
         id: (Date.now() + 1).toString(), 
@@ -115,6 +167,19 @@ export default function AiChatScreen() {
     }
   };
 
+  const handleClearChat = async () => {
+    if (user?._id) {
+      setIsLoading(true);
+      await clearMessagesMutation({ userId: user._id as any });
+      setMessages([{
+        id: '1',
+        text: `Halo ${user?.name?.split(' ')[0] || ''}! Histori chat telah dibersihkan. Ada yang bisa saya bantu?`,
+        sender: 'ai'
+      }]);
+      setIsLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
@@ -122,13 +187,18 @@ export default function AiChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <View style={styles.headerTitleBox}>
-             <Ionicons name="sparkles" size={20} color="#FFFFFF" />
-             <Text style={styles.headerTitle}>WorkSmart AI Advisor</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <View style={styles.headerTitleBox}>
+               <Ionicons name="sparkles" size={20} color="#FFFFFF" />
+               <Text style={styles.headerTitle}>WorkSmart AI Advisor</Text>
+            </View>
           </View>
+          <TouchableOpacity onPress={handleClearChat} style={{ padding: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8 }}>
+            <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
 
         <ScrollView 
@@ -146,7 +216,40 @@ export default function AiChatScreen() {
               ]}
             >
               <Text style={msg.sender === 'user' ? styles.userText : styles.aiText}>
-                {msg.text}
+                {(() => {
+                  const text = msg.text;
+                  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+                  const parts = [];
+                  let lastIndex = 0;
+                  let match;
+
+                  while ((match = linkRegex.exec(text)) !== null) {
+                    if (match.index > lastIndex) {
+                      parts.push(<Text key={`text-${lastIndex}`}>{text.substring(lastIndex, match.index)}</Text>);
+                    }
+                    
+                    const linkText = match[1];
+                    const linkUrl = match[2];
+                    
+                    parts.push(
+                      <Text 
+                        key={`link-${match.index}`} 
+                        style={{ color: msg.sender === 'user' ? '#FFFFFF' : '#1A73E8', fontWeight: 'bold', textDecorationLine: 'underline' }}
+                        onPress={() => router.push(linkUrl as any)}
+                      >
+                        {linkText}
+                      </Text>
+                    );
+                    
+                    lastIndex = linkRegex.lastIndex;
+                  }
+                  
+                  if (lastIndex < text.length) {
+                    parts.push(<Text key={`text-${lastIndex}`}>{text.substring(lastIndex)}</Text>);
+                  }
+
+                  return parts;
+                })()}
               </Text>
             </View>
           ))}

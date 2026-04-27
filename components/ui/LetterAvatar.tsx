@@ -24,7 +24,7 @@ export default function LetterAvatar({ name, size = 50, style, textStyle }: Lett
   
   const charCode = initial.charCodeAt(0);
   const colorIndex = charCode % colors.length;
-  const selectedColors = colors[colorIndex];
+  const selectedColors = colors[colorIndex] as readonly [string, string];
 
   return (
     <LinearGradient

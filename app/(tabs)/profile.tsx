@@ -1,30 +1,30 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  ScrollView, 
-  TouchableOpacity, 
-  Platform,
-  Alert,
-  Image
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useQuery } from 'convex/react';
+import LetterAvatar from '@/components/ui/LetterAvatar';
 import { api } from '@/convex/_generated/api';
 import { useUserStore } from '@/stores';
-import LetterAvatar from '@/components/ui/LetterAvatar';
+import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from 'convex/react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import {
+  Alert,
+  Image,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useUserStore();
-  
+
   // Ambil data pekerjaan yang disimpan dari Convex
-  const savedJobs = useQuery(api.bookmarks.getSavedJobs, { 
-    userId: user?._id as any 
+  const savedJobs = useQuery(api.bookmarks.getSavedJobs, {
+    userId: user?._id as any
   }) || [];
 
   const handleLogout = () => {
@@ -33,13 +33,13 @@ export default function ProfileScreen() {
       "Apakah Anda yakin ingin keluar?",
       [
         { text: "Batal", style: "cancel" },
-        { 
-          text: "Keluar", 
-          style: "destructive", 
+        {
+          text: "Keluar",
+          style: "destructive",
           onPress: () => {
             logout();
             router.replace('/');
-          } 
+          }
         }
       ]
     );
@@ -48,7 +48,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
+
         {/* Modern Header Profile */}
         <LinearGradient
           colors={['#1A73E8', '#00C896']}
@@ -58,15 +58,15 @@ export default function ProfileScreen() {
         >
           <View style={styles.profileHeaderRow}>
             {user?.avatar ? (
-              <Image 
-                source={{ uri: user.avatar }} 
-                style={styles.avatarImage} 
+              <Image
+                source={{ uri: user.avatar }}
+                style={styles.avatarImage}
               />
             ) : (
-              <LetterAvatar 
-                name={user?.name || 'User'} 
-                size={80} 
-                style={styles.avatarBorder} 
+              <LetterAvatar
+                name={user?.name || 'User'}
+                size={80}
+                style={styles.avatarBorder}
               />
             )}
             <View style={styles.headerInfo}>
@@ -77,8 +77,8 @@ export default function ProfileScreen() {
                 <Text style={styles.locationText}>{(user as any)?.location || 'Manado, Indonesia'}</Text>
               </View>
             </View>
-            <TouchableOpacity 
-              style={styles.settingsIcon} 
+            <TouchableOpacity
+              style={styles.settingsIcon}
               onPress={() => Alert.alert("Pengaturan", "Fitur personalisasi aplikasi akan segera hadir di versi berikutnya.")}
             >
               <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
@@ -86,16 +86,16 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.statsContainer}>
-            <StatBox 
-              label="Tersimpan" 
-              value={savedJobs.length.toString()} 
-              onPress={() => router.push('/(tabs)/saved')} 
+            <StatBox
+              label="Tersimpan"
+              value={savedJobs.length.toString()}
+              onPress={() => router.push('/(tabs)/saved')}
             />
             <View style={styles.statDivider} />
-            <StatBox 
-              label="Aplikasi" 
-              value="0" 
-              onPress={() => Alert.alert("Aplikasi", "Belum ada lamaran aktif.")} 
+            <StatBox
+              label="Aplikasi"
+              value="0"
+              onPress={() => Alert.alert("Aplikasi", "Belum ada lamaran aktif.")}
             />
           </View>
         </LinearGradient>
@@ -104,23 +104,29 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Akun & Keamanan</Text>
           <View style={styles.menuCard}>
-            <MenuAction 
-              icon="person-outline" 
-              title="Edit Profil & Resume" 
-              color="#1A73E8" 
-              onPress={() => router.push('/(tabs)/resume')} 
+            <MenuAction
+              icon="person-outline"
+              title="Edit Profil & Resume"
+              color="#1A73E8"
+              onPress={() => router.push('/(tabs)/resume')}
             />
-            <MenuAction 
-              icon="shield-checkmark-outline" 
-              title="Keamanan Akun (Ganti Password)" 
-              color="#34A853" 
-              onPress={() => router.push('/change-password')} 
+            <MenuAction
+              icon="sparkles-outline"
+              title="Analisis Profil dengan AI"
+              color="#9C27B0"
+              onPress={() => router.push({ pathname: '/ai-chat', params: { mode: 'analyze', data: JSON.stringify(user) } })}
             />
-            <MenuAction 
-              icon="notifications-outline" 
-              title="Notifikasi Pekerjaan" 
-              color="#FBBC05" 
-              onPress={() => Alert.alert("Notifikasi", "Pengaturan notifikasi akan tersedia setelah fitur push-notification diaktifkan.")} 
+            <MenuAction
+              icon="shield-checkmark-outline"
+              title="Keamanan Akun (Ganti Password)"
+              color="#34A853"
+              onPress={() => router.push('/change-password')}
+            />
+            <MenuAction
+              icon="notifications-outline"
+              title="Notifikasi Pekerjaan"
+              color="#FBBC05"
+              onPress={() => Alert.alert("Notifikasi", "Pengaturan notifikasi akan tersedia setelah fitur push-notification diaktifkan.")}
             />
           </View>
         </View>
@@ -128,24 +134,24 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Dukungan & Info</Text>
           <View style={styles.menuCard}>
-            <MenuAction 
-              icon="help-circle-outline" 
-              title="Pusat Bantuan" 
-              color="#5F6368" 
-              onPress={() => Alert.alert("Bantuan", "Kirim pesan ke tim kami di support@worksmart.ai atau via WhatsApp +62 812-xxxx-xxxx")} 
+            <MenuAction
+              icon="help-circle-outline"
+              title="Pusat Bantuan"
+              color="#5F6368"
+              onPress={() => Alert.alert("Bantuan", "Kirim pesan ke tim kami di support@worksmart.ai atau via WhatsApp +62 812-xxxx-xxxx")}
             />
-            <MenuAction 
-              icon="information-circle-outline" 
-              title="Tentang WorkSmartAI" 
-              color="#5F6368" 
-              onPress={() => Alert.alert("WorkSmartAI", "Versi 1.0.0 (Alpha Build)\n\nPlatform cerdas untuk pencari kerja di Sulawesi Utara.")} 
+            <MenuAction
+              icon="information-circle-outline"
+              title="Tentang WorkSmartAI"
+              color="#5F6368"
+              onPress={() => Alert.alert("WorkSmartAI", "Versi 1.0.0 (Alpha Build)\n\nPlatform cerdas untuk pencari kerja di Sulawesi Utara.")}
             />
-            <MenuAction 
-              icon="log-out-outline" 
-              title="Keluar Akun" 
-              color="#EA4335" 
-              isLast 
-              onPress={handleLogout} 
+            <MenuAction
+              icon="log-out-outline"
+              title="Keluar Akun"
+              color="#EA4335"
+              isLast
+              onPress={handleLogout}
             />
           </View>
         </View>
@@ -167,8 +173,8 @@ function StatBox({ label, value, onPress }: { label: string, value: string, onPr
 
 function MenuAction({ icon, title, color, isLast, onPress }: { icon: any, title: string, color: string, isLast?: boolean, onPress: () => void }) {
   return (
-    <TouchableOpacity 
-      style={[styles.menuItem, isLast && { borderBottomWidth: 0 }]} 
+    <TouchableOpacity
+      style={[styles.menuItem, isLast && { borderBottomWidth: 0 }]}
       onPress={onPress}
     >
       <View style={styles.menuLeft}>

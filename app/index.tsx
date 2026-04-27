@@ -21,8 +21,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import WorkInput from '../components/ui/WorkInput';
 import WorkButton from '../components/ui/WorkButton';
 import { useUserStore } from '../stores';
-import { useGoogleAuth } from '../services/googleAuth';
-import { useEffect } from 'react';
 import { ActivityIndicator } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -32,6 +30,7 @@ export default function LoginScreen() {
   const { setUser } = useUserStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const loginMutation = useMutation(api.users.login);
 
   const handleLogin = async () => {
@@ -41,6 +40,7 @@ export default function LoginScreen() {
     }
 
     try {
+      setIsProcessing(true);
       const userDoc = await loginMutation({ email, password });
       
       if (!userDoc) {
@@ -61,57 +61,9 @@ export default function LoginScreen() {
         errMsg = errMsg.replace(/\[.*?\]\s*/g, '');
       }
       Alert.alert("Gagal Masuk", errMsg);
+    } finally {
+      setIsProcessing(false);
     }
-  };
-
-  const storeUser = useMutation(api.users.storeUser);
-  const { loginWithGoogle, userInfo, loading: googleLoading, error: googleError } = useGoogleAuth();
-
-  useEffect(() => {
-    if (userInfo) {
-      handleSyncGoogleUser();
-    }
-  }, [userInfo]);
-
-  useEffect(() => {
-    if (googleError) {
-      Alert.alert("Gagal Masuk", googleError);
-    }
-  }, [googleError]);
-
-  const handleSyncGoogleUser = async () => {
-    try {
-      const userDoc = await storeUser({
-        name: userInfo!.name,
-        email: userInfo!.email,
-        avatar: userInfo!.picture
-      });
-      
-      if (userDoc) {
-        setUser({
-          ...userDoc,
-          id: userDoc._id
-        } as any);
-        router.replace('/(tabs)/dashboard');
-      }
-    } catch (e) {
-      Alert.alert("Error", "Gagal menyinkronkan data Google ke server.");
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    // Show system prompt simulation before starting real auth session
-    Alert.alert(
-      "\"WorkSmartAI\" Ingin Menggunakan \"google.com\" untuk Masuk",
-      "Ini memungkinkan aplikasi dan situs web untuk berbagi informasi tentang Anda.",
-      [
-        { text: "Batal", style: "cancel" },
-        { 
-          text: "Lanjutkan", 
-          onPress: () => loginWithGoogle()
-        }
-      ]
-    );
   };
 
   return (
@@ -165,30 +117,11 @@ export default function LoginScreen() {
                   <Text style={styles.forgotText}>Lupa Kata Sandi?</Text>
                 </TouchableOpacity>
 
-                <WorkButton title="Masuk ke Akun" onPress={handleLogin} style={styles.loginBtn} />
-                
-                <View style={styles.dividerRow}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>Atau masuk dengan</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                <View style={styles.socialRow}>
-                  <TouchableOpacity 
-                    style={styles.googleBtn} 
-                    onPress={handleGoogleLogin}
-                    disabled={googleLoading}
-                  >
-                    {googleLoading ? (
-                      <ActivityIndicator color="#1A73E8" />
-                    ) : (
-                      <>
-                        <Ionicons name="logo-google" size={20} color="#DB4437" />
-                        <Text style={styles.googleBtnText}>Masuk dengan Google</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
+                <WorkButton 
+                  title={isProcessing ? "Memproses..." : "Masuk ke Akun"} 
+                  onPress={handleLogin} 
+                  loading={isProcessing}
+                />
               </View>
 
               <View style={styles.footer}>

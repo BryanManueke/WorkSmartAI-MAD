@@ -1,37 +1,51 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  ScrollView, 
-  TouchableOpacity, 
-  Image,
-  Dimensions,
-  Platform
-} from 'react-native';
+import LetterAvatar from '@/components/ui/LetterAvatar';
+import { api } from '@/convex/_generated/api';
 import { CATEGORIES } from '@/data/jobs';
+import { useUserStore } from '@/stores';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from 'convex/react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useUserStore } from '@/stores';
-import LetterAvatar from '@/components/ui/LetterAvatar';
+import React from 'react';
+import {
+  Dimensions,
+  Image,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function Dashboard() {
   const router = useRouter();
   const { user } = useUserStore();
-  
+
   // Ambil data pekerjaan rekomendasi dari Convex
   const recommendedJobs = useQuery(api.jobs.getRecommended) || [];
+  const allJobs = useQuery(api.jobs.listAll) || [];
+  const totalJobs = allJobs.length;
+
+  const userProfile = useQuery(api.users.getProfile, user?._id ? { userId: user._id as any } : "skip" as any);
+  
+  const aiRecIds = userProfile?.aiRecommendations?.map(r => r.jobId) || [];
+  const aiRecJobs = useQuery(api.jobs.getByIds, aiRecIds.length > 0 ? { ids: aiRecIds as any } : "skip" as any);
+
+  const displayRecommendedJobs = aiRecJobs && aiRecJobs.length > 0 
+    ? aiRecJobs.map(job => {
+        const rec = userProfile?.aiRecommendations?.find(r => r.jobId === job._id);
+        return { ...job, matchScore: rec?.score };
+      })
+    : recommendedJobs;
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
+
         {/* Top Bar */}
         <View style={styles.topBar}>
           <View>
@@ -42,21 +56,21 @@ export default function Dashboard() {
           </View>
           <View style={styles.topActions}>
             {user?.role === 'admin' && (
-              <TouchableOpacity 
-                style={styles.adminAddBtn} 
+              <TouchableOpacity
+                style={styles.adminAddBtn}
                 onPress={() => router.push('/add-job')}
               >
                 <Ionicons name="add" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             )}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.profileContainer}
               onPress={() => router.push('/(tabs)/profile')}
             >
               {user?.avatar ? (
-                <Image 
-                  source={{ uri: user.avatar }} 
-                  style={styles.profileImg} 
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.profileImg}
                 />
               ) : (
                 <LetterAvatar name={user?.name || 'User'} size={44} />
@@ -66,8 +80,8 @@ export default function Dashboard() {
         </View>
 
         {/* Search Bar */}
-        <TouchableOpacity 
-          style={styles.searchBar} 
+        <TouchableOpacity
+          style={styles.searchBar}
           activeOpacity={0.9}
           onPress={() => router.push('/recommendation')}
         >
@@ -79,7 +93,10 @@ export default function Dashboard() {
         </TouchableOpacity>
 
         {/* AI Card */}
-        <TouchableOpacity activeOpacity={0.95}>
+        <TouchableOpacity 
+          activeOpacity={0.95}
+          onPress={() => router.push({ pathname: '/ai-chat', params: { mode: 'analyze', data: JSON.stringify(user) } })}
+        >
           <LinearGradient
             colors={['#1A73E8', '#00C896']}
             start={{ x: 0, y: 0 }}
@@ -92,7 +109,9 @@ export default function Dashboard() {
               </View>
               <View style={styles.aiTextBox}>
                 <Text style={styles.aiCardTitle}>Target AI Hari Ini</Text>
-                <Text style={styles.aiCardDesc}>Berdasarkan profilmu, kami menemukan 12 pekerjaan baru hari ini.</Text>
+                <Text style={styles.aiCardDesc}>
+                  Berdasarkan profilmu, kami siap menganalisis {totalJobs > 0 ? totalJobs : 'seluruh'} pekerjaan untuk mencarikan yang paling cocok. Klik untuk mulai!
+                </Text>
               </View>
             </View>
           </LinearGradient>
@@ -103,21 +122,21 @@ export default function Dashboard() {
           <Text style={styles.sectionTitle}>Direkomendasikan Untukmu</Text>
           <TouchableOpacity onPress={() => router.push('/recommendation')}><Text style={styles.seeAll}>Lihat Semua</Text></TouchableOpacity>
         </View>
-        
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-          {recommendedJobs.map((job: any) => (
-            <TouchableOpacity 
-              key={job._id} 
-              style={styles.jobCard} 
+          {displayRecommendedJobs.map((job: any) => (
+            <TouchableOpacity
+              key={job._id}
+              style={styles.jobCard}
               activeOpacity={0.8}
               onPress={() => router.push({
                 pathname: '/job-detail',
-                params: { 
+                params: {
                   id: job._id,
-                  title: job.title, 
-                  company: job.company, 
-                  location: job.location, 
-                  salary: job.salary 
+                  title: job.title,
+                  company: job.company,
+                  location: job.location,
+                  salary: job.salary
                 }
               })}
             >
@@ -125,9 +144,15 @@ export default function Dashboard() {
                 <View style={styles.companyLogo}>
                   <Ionicons name={job.logo as any} size={28} color="#1A73E8" />
                 </View>
-                <View style={styles.fullTimeBadge}>
-                  <Text style={styles.fullTimeText}>{job.type}</Text>
-                </View>
+                {job.matchScore ? (
+                  <View style={[styles.fullTimeBadge, { backgroundColor: '#00C896' }]}>
+                    <Text style={[styles.fullTimeText, { color: '#FFFFFF' }]}>{job.matchScore}% Match</Text>
+                  </View>
+                ) : (
+                  <View style={styles.fullTimeBadge}>
+                    <Text style={styles.fullTimeText}>{job.type}</Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
               <Text style={styles.companyName}>{job.company}</Text>
@@ -146,12 +171,12 @@ export default function Dashboard() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Kategori Populer</Text>
         </View>
-        
+
         <View style={styles.categoryGrid}>
           {CATEGORIES.map(category => (
-            <TouchableOpacity 
-              key={category.id} 
-              style={styles.categoryItem} 
+            <TouchableOpacity
+              key={category.id}
+              style={styles.categoryItem}
               activeOpacity={0.7}
               onPress={() => router.push({
                 pathname: '/category-jobs',
