@@ -43,6 +43,9 @@ export default function JobDetailScreen() {
   const isValidId = typeof id === 'string' && id.length > 5; // Convex IDs are long
   const job = useQuery(api.jobs.getById, isValidId ? { jobId: id as any } : "skip" as any);
   
+  const userProfile = useQuery(api.users.getProfile, user?._id ? { userId: user._id as any } : "skip" as any);
+  const aiRecommendation = userProfile?.aiRecommendations?.find((r: any) => r.jobId === id);
+  
   if (!isValidId || !job) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -56,7 +59,8 @@ export default function JobDetailScreen() {
   const handleWhatsApp = () => {
     if (!job) return;
     const name = user?.name || 'Kandidat';
-    const message = `Halo Tim Rekrutmen ${job.company}, saya ${name}. Saya melihat lowongan ${job.title} melalui WorkSmartAI. Berdasarkan Analisis AI, saya memiliki skor kecocokan sebesar 92%. Saya tertarik untuk mendiskusikan kualifikasi saya lebih lanjut.`;
+    const scoreText = aiRecommendation ? ` Berdasarkan Analisis AI, saya memiliki skor kecocokan sebesar ${aiRecommendation.score}%.` : '';
+    const message = `Halo Tim Rekrutmen ${job.company}, saya ${name}. Saya melihat lowongan ${job.title} melalui WorkSmartAI.${scoreText} Saya tertarik untuk mendiskusikan kualifikasi saya lebih lanjut.`;
     const url = `whatsapp://send?phone=6281234567890&text=${encodeURIComponent(message)}`;
     
     Linking.canOpenURL(url).then(supported => {
@@ -70,8 +74,9 @@ export default function JobDetailScreen() {
   };
 
   const handleEmail = () => {
+    const scoreText = aiRecommendation ? ` profil saya terdeteksi memiliki kecocokan sebesar ${aiRecommendation.score}% untuk posisi ${job.title}.` : ` saya tertarik untuk melamar posisi ${job.title}.`;
     const subject = `Lamaran Pekerjaan: ${job.title} - ${user?.name || 'Kandidat'}`;
-    const body = `Halo Tim Rekrutmen ${job.company},\n\nPerkenalkan saya ${user?.name || 'Kandidat'}. Melalui aplikasi WorkSmartAI, profil saya terdeteksi memiliki kecocokan tinggi (92%) untuk posisi ${job.title}.\n\nBerikut ringkasan profil saya...\n\nTerima kasih.`;
+    const body = `Halo Tim Rekrutmen ${job.company},\n\nPerkenalkan saya ${user?.name || 'Kandidat'}. Melalui aplikasi WorkSmartAI,${scoreText}\n\nBerikut ringkasan profil saya...\n\nTerima kasih.`;
     const url = `mailto:recruitment@company.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
     Linking.openURL(url);
@@ -106,23 +111,25 @@ export default function JobDetailScreen() {
           </View>
 
           {/* AI Score Insight */}
-          <LinearGradient
-            colors={['#E8F1FF', '#F1F3F4']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.aiInsightBox}
-          >
-            <View style={styles.aiHeader}>
-              <Ionicons name="sparkles" size={20} color="#1A73E8" />
-              <Text style={styles.aiTitle}>Analisis AI WorkSmart</Text>
-            </View>
-            <View style={styles.scoreRow}>
-              <Text style={styles.scoreValue}>92%</Text>
-              <Text style={styles.scoreLabel}>Kecocokan Profil</Text>
-            </View>
-            <Text style={styles.aiReason}>
-              "Berdasarkan analisis skill dan preferensi, profil Anda sangat direkomendasikan untuk posisi ini."
-            </Text>
-          </LinearGradient>
+          {aiRecommendation && (
+            <LinearGradient
+              colors={['#E8F1FF', '#F1F3F4']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.aiInsightBox}
+            >
+              <View style={styles.aiHeader}>
+                <Ionicons name="sparkles" size={20} color="#1A73E8" />
+                <Text style={styles.aiTitle}>Analisis AI WorkSmart</Text>
+              </View>
+              <View style={styles.scoreRow}>
+                <Text style={styles.scoreValue}>{aiRecommendation.score}%</Text>
+                <Text style={styles.scoreLabel}>Kecocokan Profil</Text>
+              </View>
+              <Text style={styles.aiReason}>
+                "{aiRecommendation.reason}"
+              </Text>
+            </LinearGradient>
+          )}
 
           <View style={styles.tagsContainer}>
             <View style={styles.tag}><Text style={styles.tagText}>{job.type}</Text></View>

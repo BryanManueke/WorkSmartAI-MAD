@@ -1,57 +1,36 @@
-# 📁 Struktur Folder Proyek WorkSmartAI
+# WorkSmartAI 🚀
 
-## Struktur Akhir
+**Platform Pencarian Kerja Cerdas Berbasis Kecerdasan Buatan (AI)**
 
-```
-FINAL_PROJECT/
-│
-├── app/                        ← Semua layar aplikasi (Expo Router)
-│   ├── (tabs)/                 ← Tab utama: dashboard, recommendation, saved, profile
-│   ├── _layout.tsx             ← Root layout + ConvexProvider
-│   ├── job-detail.tsx          ← Halaman detail pekerjaan
-│   ├── category-jobs.tsx       ← Halaman list pekerjaan per kategori
-│   ├── login.tsx               ← Halaman login
-│   ├── register.tsx            ← Halaman registrasi
-│   └── setup-profile.tsx       ← Halaman setup profil
-│
-├── convex/                     ← 🗄️ BACKEND (Convex)
-│   ├── schema.ts               ← Definisi tabel database
-│   ├── jobs.ts                 ← API fungsi pekerjaan
-│   └── _generated/             ← AUTO-GENERATED
-│
-├── components/                 ← Komponen UI reusable
-├── constants/                  ← Data statis
-├── hooks/                      ← Custom hooks
-├── assets/                     ← Gambar dan aset
-├── .env.local                  ← URL koneksi Convex
-├── package.json                ← Dependensi Proyek
-└── README.md                   ← Panduan ini
+WorkSmartAI adalah aplikasi *mobile* yang menggunakan **Google Gemini AI** untuk menganalisis profil Anda dan memberikan rekomendasi pekerjaan yang paling cocok (beserta skor persentase) secara *real-time*.
+
+## ✨ Fitur Utama
+- **AI Job Matching**: Menganalisis keahlian (skills) dan memberikan skor kecocokan spesifik (0-100%).
+- **AI Chat Advisor**: Asisten virtual pintar untuk tips karir dan panduan lamaran kerja.
+- **Real-time Database**: Semua data (Lowongan, Profil, Riwayat Chat) tersinkronisasi instan.
+- **Resume Generator**: Buat dan lihat ringkasan CV Anda dengan mudah.
+- **Terintegrasi Penuh**: Bisa langsung hubungi HRD via WhatsApp/Email dengan menyertakan skor AI Anda.
+
+## 🛠️ Teknologi (Tech Stack)
+- **Frontend**: React Native, Expo, NativeWind
+- **Backend & DB**: Convex (Real-time NoSQL)
+- **Kecerdasan Buatan**: Google Gemini AI
+- **Bahasa**: TypeScript
+
+## 🚀 Cara Menjalankan Aplikasi
+
+**1. Persiapan**
+Buat file `.env.local` dan masukkan kunci berikut:
+```env
+GEMINI_API_KEY=Kunci_Gemini_Anda
+EXPO_PUBLIC_CONVEX_URL=URL_Convex_Anda
 ```
 
----
-
-## ⚠️ Kenapa `convex/` ada di dalam `frontend/`?
-
-Ini adalah **cara yang benar secara teknis**. Convex CLI (`npx convex dev`) bekerja dengan membaca folder `convex/` yang sejajar dengan `package.json` proyek yang menggunakannya. Karena frontend-lah yang menggunakan Convex, maka `convex/` **harus** berada di dalam `frontend/`.
-
----
-
-## 🚀 Cara Menjalankan
-
-### Terminal 1 — Backend (Convex):
+**2. Instal & Jalankan**
+Buka terminal dan jalankan perintah ini secara berurutan:
 ```bash
-npx convex dev
+npm install        # Instal dependensi
+npx convex dev     # Jalankan Backend (Terminal 1)
+npm start          # Jalankan Frontend (Terminal 2)
 ```
-
-### Terminal 2 — Frontend (Expo):
-```bash
-npm start
-```
-
----
-
-## 📋 Urutan Setup Pertama Kali
-
-1. `npx convex dev` → login/buat akun Convex, lalu tunggu hingga URL muncul
-2. Buka terminal baru → `npm start`
-3. Scan QR Code dengan Expo Go
+*Gunakan aplikasi Expo Go di HP Anda untuk menscan QR Code.*

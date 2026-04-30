@@ -41,19 +41,24 @@ export default function LoginScreen() {
 
     try {
       setIsProcessing(true);
+      console.log("Memulai loginMutation...");
       const userDoc = await loginMutation({ email, password });
+      console.log("loginMutation selesai:", userDoc ? "Sukses" : "Gagal");
       
       if (!userDoc) {
         throw new Error("Gagal mengambil profil akun.");
       }
 
+      console.log("Setting user store...");
       setUser({
         ...userDoc,
         id: userDoc._id
       } as any);
 
+      console.log("Navigasi ke dashboard...");
       router.replace('/(tabs)/dashboard');
     } catch (error: any) {
+      console.error("Login Error:", error);
       let errMsg = error.message || "Kredensial salah.";
       if (errMsg.includes("Uncaught Error: ")) {
         errMsg = errMsg.split("Uncaught Error: ")[1].split(" at handler")[0].trim();
